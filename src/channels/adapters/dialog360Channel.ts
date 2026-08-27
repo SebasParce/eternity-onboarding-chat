@@ -47,4 +47,15 @@ export class Dialog360WhatsAppChannel implements WhatsAppChannel {
         "El payload sigue el formato de Meta Cloud API — ver comentarios de este archivo."
     );
   }
+
+  verifyWebhookSignature(
+    _fullUrl: string,
+    _headers: Record<string, string | string[] | undefined>,
+    _rawBody: unknown
+  ): boolean {
+    throw new Error(
+      "Dialog360WhatsAppChannel.verifyWebhookSignature no implementado todavía — 360dialog/Meta Cloud API " +
+        "firma con HMAC-SHA256 sobre el raw body (header 'X-Hub-Signature-256'), similar a Twilio pero con SHA-256."
+    );
+  }
 }

@@ -39,4 +39,9 @@ export class MockWhatsAppChannel implements WhatsAppChannel {
       raw: rawBody,
     };
   }
+
+  /** El mock no tiene proveedor real detrás, así que no hay firma que verificar. */
+  verifyWebhookSignature(): boolean {
+    return true;
+  }
 }
