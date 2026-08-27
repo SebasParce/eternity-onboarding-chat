@@ -26,4 +26,13 @@ export interface WhatsAppChannel {
    * (ej. es un evento de estado de entrega, o un ping de verificación).
    */
   parseInboundWebhook(rawBody: unknown): InboundMessage | null;
+
+  /**
+   * Verifica que el request al webhook realmente venga del proveedor (no de
+   * un tercero suplantándolo). Cada proveedor firma sus webhooks distinto —
+   * Twilio con HMAC-SHA1 sobre la URL + parámetros (header `X-Twilio-Signature`),
+   * Meta Cloud API/360dialog con HMAC-SHA256 sobre el raw body, Gupshup no
+   * firma por defecto. Debe ejecutarse ANTES de procesar el mensaje.
+   */
+  verifyWebhookSignature(fullUrl: string, headers: Record<string, string | string[] | undefined>, rawBody: unknown): boolean;
 }

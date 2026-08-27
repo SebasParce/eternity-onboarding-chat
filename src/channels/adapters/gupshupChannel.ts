@@ -48,4 +48,17 @@ export class GupshupWhatsAppChannel implements WhatsAppChannel {
       "GupshupWhatsAppChannel.parseInboundWebhook no implementado todavía. Ver comentarios de este archivo."
     );
   }
+
+  verifyWebhookSignature(
+    _fullUrl: string,
+    _headers: Record<string, string | string[] | undefined>,
+    _rawBody: unknown
+  ): boolean {
+    // Gupshup no firma sus webhooks por defecto. La mitigación recomendada es
+    // usar una URL de webhook con un token secreto en la query string y
+    // compararlo aquí, en vez de validar una firma que no existe.
+    throw new Error(
+      "GupshupWhatsAppChannel.verifyWebhookSignature no implementado todavía. Ver comentarios de este archivo."
+    );
+  }
 }

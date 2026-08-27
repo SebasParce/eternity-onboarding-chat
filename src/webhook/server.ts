@@ -25,7 +25,17 @@ import { handleInboundMessage } from "../conversation/stateMachine.js";
  */
 
 const app = express();
+// Necesario para que req.protocol/req.get('host') reflejen la URL pública
+// real (https, dominio público) cuando el server corre detrás de un proxy/CDN
+// (Vercel, ngrok, un load balancer) — si no, la validación de firma de Twilio
+// falla porque la URL que reconstruimos no coincide con la que Twilio firmó.
+app.set("trust proxy", true);
+
+// Twilio manda application/x-www-form-urlencoded; Meta Cloud API/360dialog y
+// Gupshup mandan JSON. El mock de pruebas también usa JSON. Con ambos
+// middlewares montados, Express usa el que matchee el Content-Type real.
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 const channel = createWhatsAppChannel();
 const repo = new SupabaseCreatorRepository();
@@ -36,6 +46,18 @@ app.get("/health", (_req, res) => {
 
 app.post("/webhook/whatsapp", async (req, res) => {
   try {
+    // Construye la URL pública exacta que el proveedor usó para firmar el
+    // request. Detrás de un proxy/CDN (Vercel, ngrok, etc.) esto depende de
+    // que 'trust proxy' esté configurado correctamente (ver abajo) para que
+    // req.protocol/req.get('host') reflejen la URL pública real, no la interna.
+    const fullUrl = `${req.protocol}://${req.get("host")}${req.originalUrl}`;
+
+    if (!channel.verifyWebhookSignature(fullUrl, req.headers, req.body)) {
+      console.warn(`[webhook/whatsapp] Firma inválida en request de ${channel.providerName}, rechazado.`);
+      res.status(403).json({ ok: false, error: "invalid_signature" });
+      return;
+    }
+
     const inbound = channel.parseInboundWebhook(req.body);
 
     // No todo lo que llega al webhook es un mensaje de usuario (ej. eventos de

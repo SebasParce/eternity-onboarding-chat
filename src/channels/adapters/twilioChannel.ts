@@ -1,52 +1,107 @@
+import twilio from "twilio";
 import type { WhatsAppChannel } from "../WhatsAppChannel.js";
 import type { InboundMessage, OutboundMessage } from "../../types/domain.js";
 
 /**
- * Adapter para Twilio WhatsApp Business API.
+ * Adapter real de Twilio para WhatsApp Business API.
  *
- * ESTADO: stub documentado, sin credenciales reales todavía (ver plan Fase 1).
- * Implementar cuando Eternity Agency LATAM tenga cuenta de Twilio + número
- * de WhatsApp aprobado por Meta.
+ * Requiere en .env: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM
+ * (el sender de WhatsApp aprobado, o el número del Sandbox mientras se prueba
+ * — formato "whatsapp:+14155238886", CON el prefijo "whatsapp:").
  *
- * --- Envío (sendMessage) ---
- * Usar el SDK oficial `twilio` (no incluido aún en package.json):
- *   npm install twilio
- *   const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
- *   await client.messages.create({
- *     from: process.env.TWILIO_WHATSAPP_FROM,     // "whatsapp:+1415XXXXXXX"
- *     to: `whatsapp:${message.to}`,
- *     body: message.text,
- *     // Fuera de la ventana de 24h, en vez de `body` libre hay que usar
- *     // `contentSid` + `contentVariables` apuntando a una plantilla aprobada.
- *   });
- * Twilio no soporta botones interactivos nativos como Gupshup/360dialog en
- * todos los tiers — para "Quiero iniciar" se puede usar un Quick Reply de
- * WhatsApp vía Content API, o pedirle al creador que responda con la palabra
- * "iniciar" (el matcher de intención en conversation/messages.ts ya lo cubre).
+ * --- Envío ---
+ * Usa el Message resource de Twilio (`client.messages.create`) con `body`
+ * libre. Eso cubre el 100% del flujo de Fase 1 porque todo el intercambio
+ * ocurre dentro de la ventana de 24h (mensaje libre, sin costo de plantilla
+ * de Meta).
  *
- * --- Webhook entrante (parseInboundWebhook) ---
- * Twilio envía application/x-www-form-urlencoded (no JSON) con campos como:
- *   { From: "whatsapp:+573001234567", Body: "hola", ButtonText?: "..." }
- * Hay que:
- *   1. Configurar el server (ver webhook/server.ts) para parsear urlencoded
- *      en la ruta de Twilio.
- *   2. Validar la firma del request con `twilio.validateRequest(...)` usando
- *      TWILIO_AUTH_TOKEN antes de confiar en el payload.
+ * Nota sobre botones: WhatsApp/Twilio no permite adjuntar un botón táctil a
+ * un mensaje de `body` libre — los Quick Replies reales requieren crear antes
+ * un Content Template (Twilio Console → Messaging → Content Template Builder)
+ * y enviarlo por `contentSid`. Para no bloquear Fase 1 en ese paso manual,
+ * este adapter representa los "botones" como texto plano dentro del mensaje
+ * (ej. "👉 Escribe *iniciar*"), y el motor de conversación ya detecta esa
+ * intención por texto libre (ver conversation/messages.ts:isQuieroIniciarIntent).
+ * Mejora futura: crear el Content Template con Quick Reply y cambiar
+ * `sendMessage` para usar `contentSid` + `contentVariables` cuando haya botones.
+ *
+ * --- Webhook entrante ---
+ * Twilio envía `application/x-www-form-urlencoded` (el server ya lo parsea
+ * con `express.urlencoded`). Campos relevantes: `From` ("whatsapp:+57..."),
+ * `Body` (texto), `ButtonText` (si vino de un Quick Reply real).
+ *
+ * --- Verificación de firma ---
+ * Usa `twilio.validateRequest` con el Auth Token, la URL pública exacta del
+ * webhook (incluyendo query params) y los parámetros recibidos.
  */
 export class TwilioWhatsAppChannel implements WhatsAppChannel {
   readonly providerName = "twilio";
 
-  async sendMessage(_message: OutboundMessage): Promise<void> {
-    throw new Error(
-      "TwilioWhatsAppChannel.sendMessage no implementado todavía — falta cuenta/credenciales de Twilio. " +
-        "Ver comentarios de este archivo para la integración real."
-    );
+  private readonly client: twilio.Twilio;
+  private readonly authToken: string;
+  private readonly from: string;
+
+  constructor() {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const from = process.env.TWILIO_WHATSAPP_FROM;
+
+    if (!accountSid || !authToken || !from) {
+      throw new Error(
+        "Faltan TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN o TWILIO_WHATSAPP_FROM en el entorno " +
+          "(ver .env.example). TWILIO_WHATSAPP_FROM debe incluir el prefijo 'whatsapp:', ej. " +
+          "'whatsapp:+14155238886' (el número del Sandbox) o tu sender aprobado."
+      );
+    }
+
+    this.authToken = authToken;
+    this.from = from;
+    this.client = twilio(accountSid, authToken);
   }
 
-  parseInboundWebhook(_rawBody: unknown): InboundMessage | null {
-    throw new Error(
-      "TwilioWhatsAppChannel.parseInboundWebhook no implementado todavía — el payload de Twilio " +
-        "es application/x-www-form-urlencoded, no JSON. Ver comentarios de este archivo."
-    );
+  async sendMessage(message: OutboundMessage): Promise<void> {
+    const body = appendButtonsAsText(message.text, message.buttons);
+    const to = message.to.startsWith("whatsapp:") ? message.to : `whatsapp:${message.to}`;
+
+    await this.client.messages.create({ from: this.from, to, body });
   }
+
+  parseInboundWebhook(rawBody: unknown): InboundMessage | null {
+    if (!rawBody || typeof rawBody !== "object") return null;
+    const body = rawBody as Record<string, unknown>;
+
+    // Twilio también pega a este mismo webhook los status callbacks de
+    // mensajes salientes (delivered/read/failed) si se configuran así — esos
+    // traen `MessageStatus` pero no `From`/`Body`. Los ignoramos aquí.
+    if (typeof body.From !== "string") return null;
+
+    const from = body.From.replace(/^whatsapp:/, "");
+    // Un Quick Reply real llega con ButtonText y sin Body útil — lo tratamos
+    // como el texto del mensaje para que isQuieroIniciarIntent() lo detecte
+    // igual que si el creador lo hubiera escrito.
+    const text = (typeof body.Body === "string" && body.Body.trim()) || (typeof body.ButtonText === "string" ? body.ButtonText : "");
+
+    if (!text) return null;
+
+    return { from, text, raw: rawBody };
+  }
+
+  verifyWebhookSignature(
+    fullUrl: string,
+    headers: Record<string, string | string[] | undefined>,
+    rawBody: unknown
+  ): boolean {
+    const signatureHeader = headers["x-twilio-signature"];
+    const signature = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
+    if (!signature) return false;
+
+    const params = rawBody && typeof rawBody === "object" ? (rawBody as Record<string, string>) : {};
+    return twilio.validateRequest(this.authToken, signature, fullUrl, params);
+  }
+}
+
+function appendButtonsAsText(text: string, buttons: OutboundMessage["buttons"]): string {
+  if (!buttons?.length) return text;
+  const lines = buttons.map((b) => `👉 Escribe *${b.title.replace(/[^\p{L}\p{N}\s]/gu, "").trim()}*`);
+  return `${text}\n\n${lines.join("\n")}`;
 }
