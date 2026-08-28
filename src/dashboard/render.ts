@@ -458,7 +458,7 @@ export function renderConversation(creator: Creator, entries: InteractionLogEntr
             ${toggleButton}
           </div>
 
-          <div style="padding:16px 18px;max-height:60vh;overflow-y:auto;background:${WA.bg};">
+          <div id="chat-messages" style="padding:16px 18px;max-height:60vh;overflow-y:auto;background:${WA.bg};">
             ${
               entries.length === 0
                 ? `<div style="text-align:center;color:${WA.textMuted};padding:32px;">Todavía no hay mensajes.</div>`
@@ -468,6 +468,7 @@ export function renderConversation(creator: Creator, entries: InteractionLogEntr
 
           <form method="POST" action="/dashboard/creators/${esc(creator.id)}/send" style="display:flex;gap:8px;padding:14px 18px;border-top:1px solid ${WA.headerBorder};background:${WA.header};">
             <input
+              id="chat-input"
               type="text"
               name="mensaje"
               placeholder="Escribe un mensaje como manager…"
@@ -483,7 +484,18 @@ export function renderConversation(creator: Creator, entries: InteractionLogEntr
       <p style="max-width:700px;font-size:11.5px;color:${WA.textMuted};margin-top:8px;">
         Enviar un mensaje pausa el bot automáticamente para este creador.
       </p>
-    </div>`;
+    </div>
+    <script>
+      // Al cargar (incluyendo el reload que hace el POST de enviar/pausar/
+      // reactivar), el chat debe abrir mostrando los mensajes más recientes,
+      // no el inicio de la conversación.
+      (function () {
+        var messages = document.getElementById("chat-messages");
+        if (messages) messages.scrollTop = messages.scrollHeight;
+        var input = document.getElementById("chat-input");
+        if (input) input.focus();
+      })();
+    </script>`;
 
   return dashboardShell(`${creator.nombre ?? creator.whatsapp_number} — Conversación`, allCreators, main, "conversaciones");
 }
