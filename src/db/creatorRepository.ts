@@ -40,4 +40,10 @@ export interface CreatorRepository {
     faq_entry_id?: string | null;
     etapa_en_momento: CreatorStage;
   }): Promise<InteractionLogEntry>;
+
+  /** Todos los creadores, más recientemente activos primero. Para el dashboard. */
+  listCreators(): Promise<Creator[]>;
+
+  /** Historial completo de un creador, en orden cronológico. Para el dashboard. */
+  listInteractionsForCreator(creatorId: string): Promise<InteractionLogEntry[]>;
 }

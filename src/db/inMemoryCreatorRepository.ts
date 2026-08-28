@@ -67,4 +67,14 @@ export class InMemoryCreatorRepository implements CreatorRepository {
   getFullLog(): InteractionLogEntry[] {
     return this.log;
   }
+
+  async listCreators(): Promise<Creator[]> {
+    return [...this.creators.values()].sort((a, b) => b.actualizado_at.localeCompare(a.actualizado_at));
+  }
+
+  async listInteractionsForCreator(creatorId: string): Promise<InteractionLogEntry[]> {
+    return this.log
+      .filter((entry) => entry.creator_id === creatorId)
+      .sort((a, b) => a.creado_at.localeCompare(b.creado_at));
+  }
 }

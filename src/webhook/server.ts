@@ -3,6 +3,7 @@ import express from "express";
 import { createWhatsAppChannel } from "../channels/createChannel.js";
 import { SupabaseCreatorRepository } from "../db/supabaseCreatorRepository.js";
 import { handleInboundMessage } from "../conversation/stateMachine.js";
+import { createDashboardRouter } from "../dashboard/dashboardRouter.js";
 
 /**
  * Punto de integración con WhatsApp Business API.
@@ -43,6 +44,11 @@ const repo = new SupabaseCreatorRepository();
 app.get("/health", (_req, res) => {
   res.json({ ok: true, provider: channel.providerName });
 });
+
+// Dashboard interno de solo lectura (ver src/dashboard/) — protegido con Basic
+// Auth (DASHBOARD_USER/DASHBOARD_PASSWORD en .env). Sin esas variables, el
+// dashboard responde 503 en vez de quedar abierto.
+app.use("/dashboard", createDashboardRouter(repo));
 
 app.post("/webhook/whatsapp", async (req, res) => {
   try {

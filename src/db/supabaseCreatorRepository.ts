@@ -56,4 +56,25 @@ export class SupabaseCreatorRepository implements CreatorRepository {
     if (error) throw new Error(`[interaction_log.insert] ${error.message}`);
     return data as InteractionLogEntry;
   }
+
+  async listCreators(): Promise<Creator[]> {
+    const { data, error } = await supabase
+      .from("creators")
+      .select("*")
+      .order("actualizado_at", { ascending: false });
+
+    if (error) throw new Error(`[creators.listCreators] ${error.message}`);
+    return (data as Creator[]) ?? [];
+  }
+
+  async listInteractionsForCreator(creatorId: string): Promise<InteractionLogEntry[]> {
+    const { data, error } = await supabase
+      .from("interaction_log")
+      .select("*")
+      .eq("creator_id", creatorId)
+      .order("creado_at", { ascending: true });
+
+    if (error) throw new Error(`[interaction_log.listInteractionsForCreator] ${error.message}`);
+    return (data as InteractionLogEntry[]) ?? [];
+  }
 }
