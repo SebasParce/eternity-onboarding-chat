@@ -29,6 +29,7 @@ export interface CreatorRepository {
         | "ultimo_mensaje_entrante_at"
         | "ultimo_mensaje_saliente_at"
         | "contexto"
+        | "bot_pausado"
       >
     >
   ): Promise<Creator>;

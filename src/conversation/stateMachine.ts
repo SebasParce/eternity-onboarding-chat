@@ -46,6 +46,11 @@ export async function handleInboundMessage(
     etapa_en_momento: creator.etapa,
   });
 
+  // Un manager tomó esta conversación desde el dashboard: el mensaje ya quedó
+  // registrado arriba (así el manager lo ve en el chat), pero el motor no
+  // responde solo — el humano tiene el control hasta que reactive el bot.
+  if (creator.bot_pausado) return;
+
   switch (creator.etapa) {
     case "nuevo":
       await handleEtapaNuevo(repo, channel, creator, inbound);

@@ -30,6 +30,7 @@ export class InMemoryCreatorRepository implements CreatorRepository {
       ultimo_mensaje_entrante_at: null,
       ultimo_mensaje_saliente_at: null,
       contexto: {},
+      bot_pausado: false,
       creado_at: now,
       actualizado_at: now,
     };

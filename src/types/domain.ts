@@ -27,6 +27,8 @@ export interface Creator {
   ultimo_mensaje_entrante_at: string | null;
   ultimo_mensaje_saliente_at: string | null;
   contexto: Record<string, unknown>;
+  /** true cuando un manager tomó la conversación desde el dashboard — el motor no responde solo. */
+  bot_pausado: boolean;
   creado_at: string;
   actualizado_at: string;
 }

@@ -48,7 +48,7 @@ app.get("/health", (_req, res) => {
 // Dashboard interno de solo lectura (ver src/dashboard/) — protegido con Basic
 // Auth (DASHBOARD_USER/DASHBOARD_PASSWORD en .env). Sin esas variables, el
 // dashboard responde 503 en vez de quedar abierto.
-app.use("/dashboard", createDashboardRouter(repo));
+app.use("/dashboard", createDashboardRouter(repo, channel));
 
 app.post("/webhook/whatsapp", async (req, res) => {
   try {
