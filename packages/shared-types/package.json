@@ -1,0 +1,15 @@
+{
+  "name": "@eternity/shared-types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tipos de dominio compartidos entre apps/chat-onboarding y apps/elearning — reflejan 1:1 el esquema de supabase/migrations. Correr `npm run build` tras editar src/.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3"
+  }
+}

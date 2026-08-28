@@ -63,7 +63,16 @@ export class TwilioWhatsAppChannel implements WhatsAppChannel {
     const body = appendButtonsAsText(message.text, message.buttons);
     const to = message.to.startsWith("whatsapp:") ? message.to : `whatsapp:${message.to}`;
 
-    await this.client.messages.create({ from: this.from, to, body });
+    // WhatsApp/Twilio rechaza (error 21617) cualquier body de más de 1600
+    // caracteres. El mensaje del programa (conversation/messages.ts) supera
+    // ese límite, así que partimos cualquier body largo en varios mensajes
+    // secuenciales — esto protege también cualquier mensaje futuro largo,
+    // no solo el actual. Los mensajes se envían en orden (await secuencial)
+    // para que lleguen en el orden correcto a WhatsApp.
+    const chunks = splitIntoWhatsAppChunks(body);
+    for (const chunk of chunks) {
+      await this.client.messages.create({ from: this.from, to, body: chunk });
+    }
   }
 
   parseInboundWebhook(rawBody: unknown): InboundMessage | null {
@@ -104,4 +113,42 @@ function appendButtonsAsText(text: string, buttons: OutboundMessage["buttons"]):
   if (!buttons?.length) return text;
   const lines = buttons.map((b) => `👉 Escribe *${b.title.replace(/[^\p{L}\p{N}\s]/gu, "").trim()}*`);
   return `${text}\n\n${lines.join("\n")}`;
+}
+
+// Límite real de Twilio/WhatsApp es 1600; dejamos margen para no rozarlo.
+const MAX_WHATSAPP_BODY_LENGTH = 1500;
+
+/**
+ * Parte un mensaje largo en varios mensajes que respetan el límite de
+ * WhatsApp, intentando cortar en límites "naturales" del texto (párrafo,
+ * luego línea, luego espacio) para no partir palabras ni emojis a la mitad.
+ * Si el texto ya cabe en un solo mensaje, devuelve un array de un elemento.
+ */
+function splitIntoWhatsAppChunks(text: string): string[] {
+  if (text.length <= MAX_WHATSAPP_BODY_LENGTH) return [text];
+
+  const chunks: string[] = [];
+  let remaining = text;
+
+  while (remaining.length > MAX_WHATSAPP_BODY_LENGTH) {
+    const window = remaining.slice(0, MAX_WHATSAPP_BODY_LENGTH);
+
+    // Preferimos cortar en un salto de párrafo, luego un salto de línea,
+    // luego un espacio; si no encontramos ninguno, cortamos duro en el límite.
+    let cutIndex =
+      window.lastIndexOf("\n\n") > 0
+        ? window.lastIndexOf("\n\n")
+        : window.lastIndexOf("\n") > 0
+          ? window.lastIndexOf("\n")
+          : window.lastIndexOf(" ") > 0
+            ? window.lastIndexOf(" ")
+            : MAX_WHATSAPP_BODY_LENGTH;
+
+    chunks.push(remaining.slice(0, cutIndex).trimEnd());
+    remaining = remaining.slice(cutIndex).trimStart();
+  }
+
+  if (remaining.length > 0) chunks.push(remaining);
+
+  return chunks;
 }

@@ -1,35 +1,23 @@
 /**
- * Tipos de dominio — reflejan 1:1 el esquema de supabase/migrations/0001_init.sql
- * Mantener ambos sincronizados manualmente (fase 1, sin generador de tipos aún).
+ * Tipos de dominio de Fase 1 (motor conversacional de WhatsApp). `CreatorStage`
+ * y `Creator` viven en @eternity/shared-types porque Fase 2 (apps/elearning)
+ * lee/escribe la misma fila de `creators` — se re-exportan aquí para no
+ * romper los imports existentes en todo este código. Los tipos de progreso de
+ * módulos/validación de setup (usados por el dashboard) también viven ahí.
  */
 
-export type CreatorStage =
-  | "nuevo"
-  | "nombre_recibido"
-  | "handle_recibido"
-  | "programa_enviado"
-  | "resolviendo_dudas"
-  | "quiere_iniciar"
-  | "derivado_elearning"
-  // etapas de fase 2 (e-learning) — ya moduladas para no requerir migración futura
-  | "en_programa_4_dias"
-  | "revision_dia_5"
-  | "ingreso_oficial"
-  | "no_completado";
-
-export interface Creator {
-  id: string;
-  whatsapp_number: string;
-  nombre: string | null;
-  tiktok_handle: string | null;
-  etapa: CreatorStage;
-  ventana_ingreso_at: string | null;
-  ultimo_mensaje_entrante_at: string | null;
-  ultimo_mensaje_saliente_at: string | null;
-  contexto: Record<string, unknown>;
-  creado_at: string;
-  actualizado_at: string;
-}
+import type { CreatorStage } from "@eternity/shared-types";
+export type {
+  CreatorStage,
+  Creator,
+  ModuleKey,
+  ModuleStatus,
+  ModuleProgress,
+  ValidationStatus,
+  ValidationMediaType,
+  SetupValidation,
+} from "@eternity/shared-types";
+export { MODULE_ORDER, isProfileComplete } from "@eternity/shared-types";
 
 export type InteractionType = "mensaje_flujo" | "duda_faq" | "evento_sistema";
 export type InteractionRole = "creador" | "sistema" | "manager";

@@ -1,27 +1,16 @@
 {
-  "name": "eternity-onboarding-chat",
+  "name": "eternity-agency-latam",
   "version": "0.1.0",
-  "description": "Motor de onboarding conversacional (WhatsApp) para Eternity Agency LATAM — Fase 1",
   "private": true,
-  "type": "module",
-  "main": "dist/webhook/server.js",
+  "description": "Eternity Agency LATAM — WhatsApp onboarding/soporte (Fase 1) + Academia de Creadores / e-learning (Fase 2), un solo producto sobre la misma base de Supabase.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "dev": "tsx watch src/webhook/server.ts",
-    "start": "node dist/webhook/server.js",
-    "simulate": "tsx scripts/simulate-conversation.ts",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.45.4",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "twilio": "^6.1.0"
-  },
-  "devDependencies": {
-    "@types/express": "^4.17.21",
-    "@types/node": "^20.14.10",
-    "tsx": "^4.16.2",
-    "typescript": "^5.5.3"
+    "build": "npm run build -w @eternity/shared-types && npm run build -w apps/chat-onboarding && npm run build -w apps/elearning",
+    "dev:chat": "npm run dev -w apps/chat-onboarding",
+    "dev:elearning": "npm run dev -w apps/elearning",
+    "typecheck": "npm run typecheck -w apps/chat-onboarding && npm run typecheck -w apps/elearning"
   }
 }
