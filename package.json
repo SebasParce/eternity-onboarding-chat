@@ -8,6 +8,7 @@
     "apps/*"
   ],
   "scripts": {
+    "postinstall": "npm run build -w @eternity/shared-types",
     "build": "npm run build -w @eternity/shared-types && npm run build -w apps/chat-onboarding && npm run build -w apps/elearning",
     "dev:chat": "npm run dev -w apps/chat-onboarding",
     "dev:elearning": "npm run dev -w apps/elearning",
