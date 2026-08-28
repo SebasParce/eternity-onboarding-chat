@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Creator } from "../types/domain.js";
 import type { CreatorRepository } from "../db/creatorRepository.js";
 import type { WhatsAppChannel } from "../channels/WhatsAppChannel.js";
 import { dashboardBasicAuth } from "./basicAuth.js";
@@ -30,20 +31,20 @@ export function createDashboardRouter(repo: CreatorRepository, channel: WhatsApp
   });
 
   router.get("/creators/:id", async (req, res) => {
-    const creator = await findCreator(repo, req.params.id);
+    const { creator, all } = await findCreator(repo, req.params.id);
     if (!creator) {
-      res.status(404).type("html").send(renderNotFound());
+      res.status(404).type("html").send(renderNotFound(all));
       return;
     }
 
     const entries = await repo.listInteractionsForCreator(creator.id);
-    res.type("html").send(renderConversation(creator, entries));
+    res.type("html").send(renderConversation(creator, entries, all));
   });
 
   router.post("/creators/:id/send", async (req, res) => {
-    const creator = await findCreator(repo, req.params.id);
+    const { creator, all } = await findCreator(repo, req.params.id);
     if (!creator) {
-      res.status(404).type("html").send(renderNotFound());
+      res.status(404).type("html").send(renderNotFound(all));
       return;
     }
 
@@ -70,9 +71,9 @@ export function createDashboardRouter(repo: CreatorRepository, channel: WhatsApp
   });
 
   router.post("/creators/:id/pause", async (req, res) => {
-    const creator = await findCreator(repo, req.params.id);
+    const { creator, all } = await findCreator(repo, req.params.id);
     if (!creator) {
-      res.status(404).type("html").send(renderNotFound());
+      res.status(404).type("html").send(renderNotFound(all));
       return;
     }
     await repo.update(creator.id, { bot_pausado: true });
@@ -80,9 +81,9 @@ export function createDashboardRouter(repo: CreatorRepository, channel: WhatsApp
   });
 
   router.post("/creators/:id/resume", async (req, res) => {
-    const creator = await findCreator(repo, req.params.id);
+    const { creator, all } = await findCreator(repo, req.params.id);
     if (!creator) {
-      res.status(404).type("html").send(renderNotFound());
+      res.status(404).type("html").send(renderNotFound(all));
       return;
     }
     await repo.update(creator.id, { bot_pausado: false });
@@ -92,7 +93,10 @@ export function createDashboardRouter(repo: CreatorRepository, channel: WhatsApp
   return router;
 }
 
-async function findCreator(repo: CreatorRepository, id: string) {
-  const creators = await repo.listCreators();
-  return creators.find((c) => c.id === id) ?? null;
+async function findCreator(
+  repo: CreatorRepository,
+  id: string
+): Promise<{ creator: Creator | null; all: Creator[] }> {
+  const all = await repo.listCreators();
+  return { creator: all.find((c) => c.id === id) ?? null, all };
 }
