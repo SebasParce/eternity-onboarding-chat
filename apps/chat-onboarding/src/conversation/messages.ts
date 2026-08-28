@@ -62,7 +62,7 @@ export function redirectToElearning(nombre: string): string {
   const primerNombre = nombre.trim().split(/\s+/)[0];
   return (
     `¡Vamos ${primerNombre}! 🚀 Este es tu siguiente paso: entra a la plataforma para crear tu perfil y ` +
-    "empezar tu capacitación:\n\n👉 https://plataforma.eternityagency.com/onboarding\n\n" +
+    "empezar tu capacitación:\n\n👉 https://academia-eternity.vercel.app\n\n" +
     "Ahí vas a encontrar los módulos de preparación y la validación de tu setup antes de arrancar los 4 días " +
     "del programa. ¡Nos vemos en tu primer LIVE! 💚"
   );
