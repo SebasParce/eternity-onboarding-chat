@@ -2,8 +2,9 @@ import { Router } from "express";
 import type { Creator } from "../types/domain.js";
 import type { CreatorRepository } from "../db/creatorRepository.js";
 import type { WhatsAppChannel } from "../channels/WhatsAppChannel.js";
-import { dashboardBasicAuth } from "./basicAuth.js";
-import { renderConversation, renderCreatorsList, renderNotFound } from "./render.js";
+import { requireDashboardSession } from "./sessionAuth.js";
+import { createSession, DASHBOARD_SESSION_COOKIE, destroySession, parseCookies, safeEqual } from "./session.js";
+import { renderConversation, renderCreatorsList, renderLogin, renderNotFound, renderRegistros } from "./render.js";
 
 /**
  * Dashboard interno para que un manager vea los creadores registrados (con
@@ -15,19 +16,71 @@ import { renderConversation, renderCreatorsList, renderNotFound } from "./render
  *     el bot automáticamente (bot_pausado = true) para que el motor deje de
  *     responder solo mientras el humano está en la conversación.
  *   - Reactivar el bot con un botón cuando el manager ya no quiere seguir
- *     respondiendo manualmente (bot_pausado = false) — el motor retoma desde
- *     la etapa actual del creador, sin perder el hilo.
+ *     respondiendo manualmente (bot_pausado = false).
  *
- * Protegido con Basic Auth (ver basicAuth.ts) porque muestra y permite
- * escribir en conversaciones reales de creadores.
+ * Autenticación: login con usuario/contraseña (DASHBOARD_USER/
+ * DASHBOARD_PASSWORD) que crea una sesión en cookie httpOnly — ver
+ * session.ts/sessionAuth.ts. Sin esas variables, el dashboard completo
+ * responde 503 en vez de quedar abierto.
  */
 export function createDashboardRouter(repo: CreatorRepository, channel: WhatsAppChannel): Router {
   const router = Router();
-  router.use(dashboardBasicAuth());
+
+  // --- Login / logout: deben quedar FUERA del middleware de sesión, si no
+  // nadie podría llegar nunca a la pantalla de login. ---
+  router.get("/login", (req, res) => {
+    if (!process.env.DASHBOARD_USER || !process.env.DASHBOARD_PASSWORD) {
+      res
+        .status(503)
+        .type("text/plain")
+        .send("El dashboard no está configurado: faltan DASHBOARD_USER / DASHBOARD_PASSWORD en el entorno.");
+      return;
+    }
+    const next = typeof req.query.next === "string" ? req.query.next : undefined;
+    res.type("html").send(renderLogin({ error: req.query.error === "1", next }));
+  });
+
+  router.post("/login", (req, res) => {
+    const expectedUser = process.env.DASHBOARD_USER;
+    const expectedPassword = process.env.DASHBOARD_PASSWORD;
+    const usuario = typeof req.body?.usuario === "string" ? req.body.usuario : "";
+    const contrasena = typeof req.body?.contrasena === "string" ? req.body.contrasena : "";
+
+    if (expectedUser && expectedPassword && safeEqual(usuario, expectedUser) && safeEqual(contrasena, expectedPassword)) {
+      const token = createSession();
+      res.cookie(DASHBOARD_SESSION_COOKIE, token, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: req.secure,
+        maxAge: 12 * 60 * 60 * 1000,
+        path: "/dashboard",
+      });
+      const next = typeof req.body?.next === "string" && req.body.next.startsWith("/dashboard") ? req.body.next : "/dashboard";
+      res.redirect(next);
+      return;
+    }
+
+    res.redirect("/dashboard/login?error=1");
+  });
+
+  router.post("/logout", (req, res) => {
+    const cookies = parseCookies(req.headers.cookie);
+    destroySession(cookies[DASHBOARD_SESSION_COOKIE]);
+    res.clearCookie(DASHBOARD_SESSION_COOKIE, { path: "/dashboard" });
+    res.redirect("/dashboard/login");
+  });
+
+  // --- Todo lo de abajo requiere sesión iniciada. ---
+  router.use(requireDashboardSession());
 
   router.get("/", async (_req, res) => {
     const creators = await repo.listCreators();
     res.type("html").send(renderCreatorsList(creators));
+  });
+
+  router.get("/registros", async (_req, res) => {
+    const creators = await repo.listCreators();
+    res.type("html").send(renderRegistros(creators));
   });
 
   router.get("/creators/:id", async (req, res) => {
