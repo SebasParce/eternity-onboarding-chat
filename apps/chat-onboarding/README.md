@@ -92,12 +92,37 @@ lógica.
 ## Base de conocimiento (FAQ)
 
 `src/faq/knowledgeBase.ts` — matching por palabras clave (determinístico, sin
-costo de LLM, fácil de auditar) sobre las FAQs ya validadas: beneficios,
-seguidores mínimos, horas de LIVE, imprevistos, qué pasa el día 5. Cada
-entrada ya incluye un `embeddingText` (la pregunta canónica) pensado para el
-día en que esto pase a búsqueda semántica/RAG real — ese día se reemplaza
-`matchFaq()` por una búsqueda vectorial, sin tocar el resto del motor ni el
-contenido de las respuestas.
+costo de LLM, fácil de auditar), 317 entradas:
+
+- 5 entradas originales sobre el Programa para Creadores Principiantes (los
+  4 días de onboarding): beneficios, seguidores mínimos, horas de LIVE,
+  imprevistos, qué pasa el día 5.
+- 312 entradas generadas desde "Banco de preguntas y respuestas · Eternity
+  Agency" (1/sep/2026, 457 preguntas / 108 páginas) — toda la Parte 1
+  ("Creadores") menos las 40 preguntas ⚠ SIN RESOLVER de esa parte. La Parte
+  2 (105 preguntas de uso interno de la agencia) se excluye a propósito: el
+  documento fuente es explícito en que no debe salir hacia un creador. Cada
+  una trae además `respuestaAmpliada` y `fuente` (slide/política + sección +
+  número original) para poder auditar el dato, aunque hoy no se envían por
+  WhatsApp. Regenerar con
+  `python3 scripts/rebuild-faq-from-banco.py /ruta/al/banco.pdf` si el banco
+  cambia (requiere `pdftotext` de poppler-utils) — el script imprime el
+  fragmento de entradas y estadísticas para verificar los conteos contra la
+  portada del PDF; hay que pegar el fragmento a mano en `FAQ_ENTRIES`
+  (después de las 5 entradas de onboarding) y confirmar `npm run typecheck`.
+
+Con cientos de entradas, `matchFaq()` ya no es "la primera keyword que
+calce": busca en todas las entradas la keyword más larga (más específica)
+que aparezca en el mensaje del creador y devuelve la dueña de esa keyword,
+para minimizar falsos positivos entre preguntas que comparten palabras
+sueltas (p. ej. "bono", "diamantes"). Es deliberadamente estricto — el
+documento fuente insiste en que responder con la tabla o el nivel
+equivocado es peor que escalar a un manager, así que ante una duda que no
+calza lo bastante bien, se escala en vez de forzar una respuesta. Cada
+entrada ya incluye un `embeddingText` (pregunta canónica + variantes)
+pensado para el día en que esto pase a búsqueda semántica/RAG real — ese día
+se reemplaza `matchFaq()` por una búsqueda vectorial, sin tocar el resto del
+motor ni el contenido de las respuestas.
 
 ## Conectar WhatsApp Business API (cuando haya credenciales)
 
