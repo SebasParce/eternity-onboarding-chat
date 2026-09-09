@@ -262,8 +262,17 @@ export const FAQ_ENTRIES: FaqEntry[] = [
   },
   {
     id: "programa-4-1",
-    embeddingText: `¿Cuánto me pagan según los diamantes que haga? También preguntan: "¿cuál es la tabla de bonos?"; "¿cuánto gano con X diamantes?"`,
-    keywords: [`Cuánto me pagan según los diamantes que haga`, `cuál es la tabla de bonos`, `cuánto gano con X diamantes`],
+    embeddingText: `¿Cuánto me pagan según los diamantes que haga? También preguntan: "¿cuál es la tabla de bonos?"; "¿cuánto gano con X diamantes?"; "¿cómo pagan?"; "¿cuánto gano?"`,
+    keywords: [
+      `Cuánto me pagan según los diamantes que haga`,
+      `cuál es la tabla de bonos`,
+      `cuánto gano con X diamantes`,
+      `cómo pagan`,
+      `cómo me pagan`,
+      `cuánto gano`,
+      `cuánto se gana`,
+      `cómo es el pago`,
+    ],
     respuesta: `80.000 diamantes son 20 dólares, 150.000 son 35, 300.000 son 70, 500.000 son 100, 800.000 son 130, 1.200.000 son 180, 1.600.000 son 220 y 3.000.000 son 280 dólares.
 
 ¿Tienes alguna otra duda? 😊`,
@@ -497,8 +506,13 @@ export const FAQ_ENTRIES: FaqEntry[] = [
   },
   {
     id: "elite-4-1",
-    embeddingText: `¿Cuál es la tabla de bonos por actividad en Elite? También preguntan: "¿cuánto gano con X diamantes en Elite?"`,
-    keywords: [`Cuál es la tabla de bonos por actividad en Elite`, `cuánto gano con X diamantes en Elite`],
+    embeddingText: `¿Cuál es la tabla de bonos por actividad en Elite? También preguntan: "¿cuánto gano con X diamantes en Elite?"; "¿cómo pagan en Elite?"; "¿cuánto gano en Elite?"`,
+    keywords: [
+      `Cuál es la tabla de bonos por actividad en Elite`,
+      `cuánto gano con X diamantes en Elite`,
+      `cómo pagan en Elite`,
+      `cuánto gano en Elite`,
+    ],
     respuesta: `100.000 diamantes son 40 dólares, 200.000 son 70, 300.000 son 100, 500.000 son 150, 800.000 son 250, 1.000.000 son 300, 2.000.000 son 500 y 3.000.000 son 700 dólares.
 
 ¿Tienes alguna otra duda? 😊`,
