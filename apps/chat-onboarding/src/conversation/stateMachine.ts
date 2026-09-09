@@ -2,6 +2,7 @@ import type { CreatorRepository } from "../db/creatorRepository.js";
 import type { WhatsAppChannel } from "../channels/WhatsAppChannel.js";
 import type { Creator, InboundMessage } from "../types/domain.js";
 import { matchFaq } from "../faq/knowledgeBase.js";
+import { ragMatchFaq } from "../faq/ragMatch.js";
 import {
   askTikTokHandle,
   faqFallbackEscalate,
@@ -163,7 +164,12 @@ async function handleModoFaq(
     return;
   }
 
-  const faqEntry = matchFaq(inbound.text);
+  // Paso 1: matcher por keywords, gratis e instantáneo (knowledgeBase.ts).
+  // Paso 2 (solo si el paso 1 no encontró nada): fallback de RAG — retrieval
+  // local gratis + una llamada al modelo más barato de Anthropic solo si hay
+  // candidatas (ver ragMatch.ts). Así el costo del RAG cae a cero para todo
+  // lo que el matcher de keywords ya resuelve solo.
+  const faqEntry = matchFaq(inbound.text) ?? (await ragMatchFaq(inbound.text));
   if (faqEntry) {
     await channel.sendMessage({ to: creator.whatsapp_number, text: faqEntry.respuesta });
     await repo.logInteraction({

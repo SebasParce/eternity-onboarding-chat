@@ -120,9 +120,61 @@ documento fuente insiste en que responder con la tabla o el nivel
 equivocado es peor que escalar a un manager, así que ante una duda que no
 calza lo bastante bien, se escala en vez de forzar una respuesta. Cada
 entrada ya incluye un `embeddingText` (pregunta canónica + variantes)
-pensado para el día en que esto pase a búsqueda semántica/RAG real — ese día
-se reemplaza `matchFaq()` por una búsqueda vectorial, sin tocar el resto del
-motor ni el contenido de las respuestas.
+pensado para el día en que esto pase a búsqueda semántica/RAG real.
+
+### Fallback de RAG (9/sep/2026)
+
+Ese día llegó — se agregó un fallback de RAG (`src/faq/localRetrieval.ts` +
+`src/faq/ragMatch.ts`) que **solo se llama cuando `matchFaq()` no encontró
+nada**, así el costo es cero para todo lo que el matcher de keywords ya
+resuelve gratis:
+
+1. **Retrieval local y gratis**: TF-IDF + similitud coseno sobre
+   `embeddingText` de las 317 entradas (`localRetrieval.ts`), calculado una
+   sola vez al cargar el módulo. Si el mensaje del creador no tiene ningún
+   solape de vocabulario relevante con el banco, no hay candidatas y **ni
+   siquiera se llama al modelo** — costo $0 para mensajes que no tienen nada
+   que ver con la FAQ.
+2. **Clasificación, no generación**: si hay candidatas (hasta 5), se llama
+   una sola vez a **Claude Haiku 4.5** (`claude-haiku-4-5-20251001`) — el
+   modelo más barato disponible hoy vía la API directa de Anthropic ($1/MTok
+   de entrada, $5/MTok de salida; Haiku 3.5 es más barato pero está retirado
+   excepto en Bedrock/Vertex, no se puede llamar así con una API key normal
+   — ver `docs.claude.com/en/docs/about-claude/pricing`). El modelo nunca
+   redacta la respuesta final: solo elige, vía tool use, el id de la
+   candidata correcta (o "NINGUNA") — una llamada de ~1.000-1.500 tokens de
+   entrada y ~15 de salida, del orden de **$0.001-0.002 por pregunta
+   escalada al RAG**. La respuesta que se envía por WhatsApp sigue siendo
+   siempre el texto ya validado de `FaqEntry.respuesta`, nunca texto nuevo
+   generado por el modelo — así se evita que invente o mezcle datos de dos
+   niveles/tablas, que es justo el error que el banco de preguntas fuente
+   marca como el más caro de cometer.
+3. Cualquier falla (sin `ANTHROPIC_API_KEY`, error de red, error de la API)
+   se traga y devuelve `null` — el bot nunca se cae por esto, simplemente
+   escala a un manager humano igual que si no hubiera match de ningún tipo.
+
+**Requiere** `ANTHROPIC_API_KEY` en `.env` (ver `.env.example`; conseguir la
+key en console.anthropic.com). Sin esa variable, el fallback es un no-op (log
+de aviso) y el bot sigue funcionando solo con `matchFaq()`, como antes de que
+existiera este archivo.
+
+**Para probarlo sin pasar por WhatsApp**: `npm run test:rag -- "Como pagan?"`
+— muestra qué hace `matchFaq()`, qué candidatas trae el retrieval local, y la
+decisión final del modelo. En `interaction_log`, una duda resuelta por este
+camino se sigue viendo igual que una resuelta por keywords (`tipo: duda_faq`,
+mismo `faq_entry_id`) — no hay hoy una marca aparte para distinguir "la
+resolvió el matcher gratis" vs. "la resolvió el RAG"; si en algún momento
+quieres medir cuánto se está usando (y cuánto está costando) el fallback,
+hay que agregar esa marca.
+
+**Upgrade futuro, si la calidad de retrieval no basta**: TF-IDF es
+puramente léxico (compara palabras, no significado) — se eligió a propósito
+por ser gratis y porque para preguntas cortas en español con bastante solape
+de palabras funciona razonablemente bien. Si algún día notas que preguntas
+formuladas de forma muy distinta a como está escrito el banco no encuentran
+candidatas, el upgrade natural es reemplazar `localRetrieval.ts` por
+embeddings reales (Anthropic no ofrece API de embeddings propia; recomienda
+Voyage AI) sin tocar `ragMatch.ts` ni el resto del motor.
 
 ## Conectar WhatsApp Business API (cuando haya credenciales)
 

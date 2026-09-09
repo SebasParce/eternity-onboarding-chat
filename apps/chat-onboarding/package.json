@@ -10,6 +10,7 @@
     "dev": "tsx watch src/webhook/server.ts",
     "start": "node dist/webhook/server.js",
     "simulate": "tsx scripts/simulate-conversation.ts",
+    "test:rag": "tsx scripts/test-rag.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
