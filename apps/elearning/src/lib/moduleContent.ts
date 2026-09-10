@@ -15,6 +15,13 @@ export interface LessonContent {
    */
   body: string | null;
   videoUrl: string | null;
+  /**
+   * Orientación real del video (los creadores graban vertical, como en
+   * TikTok LIVE) — controla el aspect-ratio del contenedor del <iframe>
+   * para que no quede con barras negras. Se ignora si `videoUrl` es null.
+   * Default si se omite: "vertical".
+   */
+  videoAspect?: "vertical" | "horizontal";
   quiz: { question: string; options: QuizOption[] } | null;
 }
 
@@ -28,14 +35,18 @@ export const LESSON_CONTENT: Partial<Record<ModuleKey, LessonContent>> = {
     title: "Bienvenida a la agencia",
     desc: "Qué somos y qué esperamos de ti",
     body: null,
-    videoUrl: null,
+    // Subido como YouTube Shorts "No listado" (IMG_6222.MOV, vertical 9:16).
+    videoUrl: "https://www.youtube.com/embed/95w1nNYUqo4",
+    videoAspect: "vertical",
     quiz: null,
   },
   monetizacion: {
     title: "Cómo funciona la monetización",
     desc: "Diamantes, pagos y tiempos",
     body: null,
-    videoUrl: null,
+    // Subido a YouTube "No listado" (IMG_6243.MOV, vertical 9:16).
+    videoUrl: "https://www.youtube.com/embed/dGrhec8_a0s",
+    videoAspect: "vertical",
     quiz: null,
   },
   setup_espacio: {

@@ -22,13 +22,33 @@ todavía no pasó por el flujo de WhatsApp.
 
 ## Contenido de las lecciones
 
-Solo el módulo `setup_espacio` tiene contenido real (el que el equipo ya
-entregó, verbatim, en `src/lib/moduleContent.ts`). Los demás (`bienvenida`,
-`monetizacion`, `reglas`) muestran un aviso de "contenido pendiente" en vez de
-texto inventado — hay que pedirle al equipo el material real y completarlo ahí
-mismo. Mientras tanto, un creador puede avanzar confirmando que leyó el aviso,
-para que el flujo completo (incluida la validación de setup y el dashboard de
-Fase 1) sea probable de punta a punta ya mismo.
+Todo el contenido real vive, verbatim, en `src/lib/moduleContent.ts` — nunca
+se inventa texto de relleno. Estado actual por módulo:
+
+- `bienvenida` y `monetizacion`: video (`videoUrl`) ya cargado, alojado en
+  YouTube como "No listado".
+- `setup_espacio`: texto (`body`) ya cargado.
+- `reglas`: pendiente, todavía sin material del equipo.
+
+Los videos de lección se alojan en YouTube como **"No listado" (unlisted)**
+— no en Supabase Storage — porque así se sirven con adaptive bitrate en
+cualquier conexión móvil sin que el equipo tenga que administrar un bucket ni
+recodificar nada. `videoUrl` debe ser la URL de **embed**
+(`https://www.youtube.com/embed/VIDEO_ID`), no el link normal de
+`youtube.com/watch?v=...` ni de `youtube.com/shorts/...` — ninguno de esos
+funciona dentro del `<iframe>` que usa `AcademyApp.tsx`. `videoAspect`
+("vertical" por default, o "horizontal") ajusta el aspect-ratio del
+contenedor para que no queden barras negras — los creadores graban vertical
+(estilo TikTok LIVE), así que casi todo el contenido será "vertical". Para
+agregar o reemplazar un video: subirlo a YouTube como "No listado", copiar el
+`VIDEO_ID` del link y pegar el embed (+ aspect si aplica) en
+`moduleContent.ts`.
+
+Cuando un módulo no tiene ni `body` ni `videoUrl`, se muestra un aviso de
+"contenido pendiente" en vez de texto inventado. Mientras tanto, un creador
+puede avanzar confirmando que revisó el aviso, para que el flujo completo
+(incluida la validación de setup y el dashboard de Fase 1) sea probable de
+punta a punta ya mismo.
 
 ## Reglas de negocio importantes
 

@@ -82,9 +82,34 @@ export function isQuieroIniciarIntent(inbound: InboundMessage): boolean {
     .replace(/\p{Diacritic}/gu, "")
     .trim();
 
-  return ["quiero iniciar", "quiero empezar", "iniciar", "empezar", "listo", "lista"].some(
-    (kw) => normalized === kw || normalized.includes(kw)
-  );
+  return [
+    "quiero iniciar",
+    "quiero empezar",
+    "quiero comenzar",
+    "quiero arrancar",
+    "ya quiero iniciar",
+    "ya quiero empezar",
+    "vamos a iniciar",
+    "vamos a empezar",
+    "vamos a comenzar",
+    "estoy listo",
+    "estoy lista",
+    "list@ para iniciar",
+    "iniciar",
+    "empezar",
+    "comenzar",
+    "arrancar",
+    "empecemos",
+    "iniciemos",
+    "arranquemos",
+    "comencemos",
+    "manos a la obra",
+    "hagamoslo",
+    "adelante",
+    "dale, vamos",
+    "listo",
+    "lista",
+  ].some((kw) => normalized === kw || normalized.includes(kw));
 }
 
 export function withQuieroIniciarButton(text: string): OutboundMessage["buttons"] {

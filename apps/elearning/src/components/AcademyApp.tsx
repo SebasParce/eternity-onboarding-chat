@@ -245,11 +245,32 @@ function LessonBody({
     return <div className="doneNote">✓ Completado</div>;
   }
 
+  const hasContent = Boolean(content?.body || content?.videoUrl);
+
   return (
     <div>
-      {content?.body ? (
-        <div>{content.body}</div>
-      ) : (
+      {content?.videoUrl && (
+        <div
+          style={{
+            position: "relative",
+            width: content.videoAspect === "horizontal" ? "100%" : "min(100%, 360px)",
+            paddingTop: content.videoAspect === "horizontal" ? "56.25%" : "177.78%", // 16:9 vs 9:16
+            margin: content.videoAspect === "horizontal" ? "0 0 16px" : "0 auto 16px",
+          }}
+        >
+          <iframe
+            src={content.videoUrl}
+            title={content.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0, borderRadius: 8 }}
+          />
+        </div>
+      )}
+
+      {content?.body && <div>{content.body}</div>}
+
+      {!hasContent && (
         <div className="pendingNote">
           📋 Contenido pendiente del equipo — este módulo todavía no tiene el material final cargado. En cuanto lo
           entreguen, se reemplaza este aviso por la lección real (video + confirmación).
@@ -258,7 +279,7 @@ function LessonBody({
 
       <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16, fontSize: 13 }}>
         <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
-        Confirmo que leí y entendí este módulo.
+        Confirmo que {content?.videoUrl ? "vi" : "leí"} y entendí este módulo.
       </label>
       <button className="primaryBtn" disabled={!confirmed} onClick={onComplete}>
         Marcar como completado
